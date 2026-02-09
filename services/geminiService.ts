@@ -62,8 +62,8 @@ Structure the timeline with logical dependencies.
 `;
 
 export const generateTasks = async (goal: string, useOptimizer: boolean = false) => {
-  // Corrected initialization to use process.env.API_KEY directly
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  // Corrected initialization to use import.meta.env.VITE_GEMINI_API_KEY directly
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
   const modelName = 'gemini-3-pro-preview';
   
   const systemPrompt = useOptimizer 
@@ -94,7 +94,7 @@ export const generateTasks = async (goal: string, useOptimizer: boolean = false)
 
 export const generateSubtasks = async (parentTask: OmniTask, request: string) => {
   // Corrected initialization
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
   const prompt = `Parent Task: "${parentTask.title}" (${parentTask.description}). 
   User wants to break this down specifically with: "${request}". 
   Generate a list of granular subtasks that fit within this parent task's context.`;
@@ -115,11 +115,15 @@ export const generateSubtasks = async (parentTask: OmniTask, request: string) =>
 
 export const reassessTask = async (task: OmniTask, explanation: string) => {
   // Corrected initialization
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: `The task "${task.title}" is overdue. User explanation: "${explanation}". 
-    Based on this, should I extend the deadline or create new sub-tasks? Return a JSON array of updated or new tasks.`,
+    contents: `The task "${task.title}" is overdue or the user is stuck. User explanation: "${explanation}". 
+    Based on this, determine the best course of action:
+    1. If the user just needs more time, return the SAME task title with a new 'dueDate'.
+    2. If the task is too big, break it down into smaller sub-tasks (return new tasks).
+    
+    Return a JSON array of the updated task (if extending) OR new sub-tasks.`,
     config: {
       systemInstruction: SYSTEM_INSTRUCTION_BASE,
       responseMimeType: "application/json",
@@ -133,7 +137,7 @@ export const reassessTask = async (task: OmniTask, explanation: string) => {
 
 export const evaluateQuality = async (prompt: string, response: string) => {
   // Corrected initialization
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
   const evalPrompt = `
     Rate the following AI task generation on a scale of 0-1 for:
     1. Completeness (Are all steps covered?)

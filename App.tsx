@@ -482,31 +482,54 @@ const App: React.FC = () => {
 
       const aiSolutions = await reassessTask(parentTask, reason);
       
-      const newSolutionTasks = aiSolutions.map((t: any) => {
-        const tid = Math.random().toString(36).substr(2, 9);
-        return {
-            ...t,
-            id: tid,
-            status: TaskStatus.TODO,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            ownerId: currentUser.id,
-            collaborators: [],
-            subTaskIds: [],
-            parentId: parentTask.id, // Link solution tasks as subtasks to the missed task
-            isAiGenerated: true,
-            originalAiData: { title: t.title, description: t.description },
-            alignmentScore: 1.0,
-            metadata: {},
-            completionPercentage: 0,
-            recurrence: t.recurrence ? { ...t.recurrence, streak: 0, startDate: new Date().toISOString() } : undefined
-        };
-      }) as OmniTask[];
+      // Check if AI suggests updating the main task (only for non-recurring)
+      // We assume if the AI returns a task with the exact same title, it's an update.
+      const updateToParent = aiSolutions.find((t: any) => t.title === parentTask.title);
+      const newSubtasksData = aiSolutions.filter((t: any) => t.title !== parentTask.title);
 
-      // Update the parent task to include the new solution subtask IDs
-      const updatedParent = { ...parentTask, subTaskIds: [...parentTask.subTaskIds, ...newSolutionTasks.map(t => t.id)] };
-      
-      let updatedTasks = tasks.map(t => t.id === taskId ? updatedParent : t).concat(newSolutionTasks);
+      let updatedTasks = [...tasks];
+
+      // 1. Handle Parent Update (Extension) - ONLY if not recurring
+      if (updateToParent && !parentTask.recurrence && updateToParent.dueDate) {
+          updatedTasks = updatedTasks.map(t => 
+              t.id === taskId ? { 
+                ...t, 
+                dueDate: updateToParent.dueDate, 
+                overdueExplanation: reason, 
+                status: TaskStatus.TODO 
+              } : t
+          );
+      }
+
+      // 2. Handle New Subtasks
+      let newSolutionTasks: OmniTask[] = [];
+      if (newSubtasksData.length > 0) {
+          newSolutionTasks = newSubtasksData.map((t: any) => {
+            const tid = Math.random().toString(36).substr(2, 9);
+            return {
+                ...t,
+                id: tid,
+                status: TaskStatus.TODO,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                ownerId: currentUser.id,
+                collaborators: [],
+                subTaskIds: [],
+                parentId: parentTask.id, // Link solution tasks as subtasks to the missed task
+                isAiGenerated: true,
+                originalAiData: { title: t.title, description: t.description },
+                alignmentScore: 1.0,
+                metadata: {},
+                completionPercentage: 0,
+                recurrence: undefined // Ensure solution tasks aren't recurring by default
+            };
+          }) as OmniTask[];
+
+          // Update parent to include new subtasks
+          updatedTasks = updatedTasks.map(t => 
+              t.id === taskId ? { ...t, subTaskIds: [...t.subTaskIds, ...newSolutionTasks.map(st => st.id)] } : t
+          ).concat(newSolutionTasks);
+      }
       
       // Update parent progress
       updatedTasks = recalculateParentProgress(updatedTasks, taskId); // Recalculate based on the original missed task
@@ -514,8 +537,11 @@ const App: React.FC = () => {
       setTasks(updatedTasks);
       saveTasks(updatedTasks);
 
-      // Now, proceed to mark the original recurring task as missed and advance its cycle
-      handleStatusChange(taskId, TaskStatus.COMPLETED, false, updatedTasks);
+      // 3. Handle Status Change
+      // Only mark as missed/completed if it is a recurring task that needs to advance cycle.
+      if (parentTask.recurrence) {
+        handleStatusChange(taskId, TaskStatus.COMPLETED, false, updatedTasks);
+      }
 
     } catch (error: any) {
       console.error("Failed to generate AI solution for missed task:", error);

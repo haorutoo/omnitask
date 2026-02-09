@@ -28,7 +28,8 @@ import {
   ChevronRight,
   AlarmClockOff,
   LightbulbOff,
-  Lightbulb
+  Lightbulb,
+  AlertTriangle
 } from 'lucide-react';
 
 interface TaskCardProps {
@@ -667,17 +668,29 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => onStatusChange(task.id, task.status === TaskStatus.COMPLETED ? TaskStatus.TODO : TaskStatus.COMPLETED)}
-            disabled={task.status === TaskStatus.COMPLETED}
-            className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all transform active:scale-[0.98] shadow-lg
-              ${task.status === TaskStatus.COMPLETED
-                ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100'
-              }`}
-          >
-            <CheckCircle size={18} /> {task.status === TaskStatus.COMPLETED ? 'Completed' : 'Complete Step'}
-          </button>
+          <div className="flex gap-2 w-full">
+            <button
+              onClick={() => onStatusChange(task.id, task.status === TaskStatus.COMPLETED ? TaskStatus.TODO : TaskStatus.COMPLETED)}
+              disabled={task.status === TaskStatus.COMPLETED}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all transform active:scale-[0.98] shadow-lg
+                ${task.status === TaskStatus.COMPLETED
+                  ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-100'
+                }`}
+            >
+              <CheckCircle size={18} /> {task.status === TaskStatus.COMPLETED ? 'Completed' : 'Complete Step'}
+            </button>
+            
+            {task.status !== TaskStatus.COMPLETED && (
+              <button
+                onClick={() => setShowMissedReasonModal(true)}
+                className="px-5 py-4 rounded-2xl font-black uppercase text-xs tracking-[0.2em] transition-all transform active:scale-[0.98] shadow-lg bg-amber-100 text-amber-700 hover:bg-amber-200 border border-amber-200"
+                title="Stuck? Get AI Help"
+              >
+                <AlertTriangle size={18} />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -705,17 +718,19 @@ export const TaskCard: React.FC<TaskCardProps> = ({
               >
                 {isGeneratingSolution ? <Loader2 className="animate-spin" size={14} /> : <><Sparkles size={14} /> Generate Solution</>}
               </button>
-              <button 
-                onClick={() => {
-                  onStatusChange(task.id, TaskStatus.COMPLETED, false); // Just mark as missed
-                  setShowMissedReasonModal(false);
-                  setFailureReason('');
-                }} 
-                disabled={isGeneratingSolution}
-                className="px-5 py-4 bg-slate-100 text-slate-400 rounded-2xl hover:bg-slate-200 transition-all font-black uppercase text-[10px] tracking-widest disabled:opacity-50"
-              >
-                Just Mark Missed
-              </button>
+              {isRecurring && (
+                <button 
+                  onClick={() => {
+                    onStatusChange(task.id, TaskStatus.COMPLETED, false); // Just mark as missed
+                    setShowMissedReasonModal(false);
+                    setFailureReason('');
+                  }} 
+                  disabled={isGeneratingSolution}
+                  className="px-5 py-4 bg-slate-100 text-slate-400 rounded-2xl hover:bg-slate-200 transition-all font-black uppercase text-[10px] tracking-widest disabled:opacity-50"
+                >
+                  Just Mark Missed
+                </button>
+              )}
               <button 
                 onClick={() => {
                   setShowMissedReasonModal(false);
