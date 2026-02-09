@@ -1,0 +1,7 @@
+{
+  "name": "OmniTask AI Architect",
+  "description": "A powerful AI-driven task management system that breaks down goals into comprehensive, multi-purpose tasks with experimental LLM observability via Opik integration.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
